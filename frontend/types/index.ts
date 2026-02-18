@@ -9,7 +9,23 @@ export interface User {
   email: string;
   role: UserRole;
   gym_id: string;
+  phone?: string;
+  is_active: boolean;
+  created_at: string;
   trainer_id?: string;
+}
+
+export interface TrainerCreate {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string;
+}
+
+export interface TrainerUpdate {
+  name?: string;
+  phone?: string;
+  is_active?: boolean;
 }
 
 export interface Gym {

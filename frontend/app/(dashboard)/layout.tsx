@@ -23,6 +23,7 @@ const navItems = [
   { href: "/sessions", label: "수업 스케줄", icon: Calendar },
   { href: "/payments", label: "결제 기록", icon: CreditCard },
   { href: "/packages", label: "패키지 관리", icon: Package },
+  { href: "/trainers", label: "트레이너 관리", icon: Users },
 ];
 
 export default function DashboardLayout({

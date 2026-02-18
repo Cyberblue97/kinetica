@@ -14,6 +14,19 @@ from models.database import (
 # --- Auth ---
 
 
+class TrainerCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    email: EmailStr
+    password: str = Field(min_length=6)
+    phone: Optional[str] = None
+
+
+class TrainerUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    phone: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
 class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6)

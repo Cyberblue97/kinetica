@@ -1,5 +1,12 @@
 import axios from "axios";
-import type { Member, MemberPackage, Package, Session } from "@/types";
+import type {
+  Member,
+  MemberPackage,
+  Package,
+  Session,
+  TrainerCreate,
+  TrainerUpdate,
+} from "@/types";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
@@ -78,6 +85,11 @@ export const dashboardApi = {
 
 export const trainersApi = {
   getAll: () => api.get<import("@/types").User[]>("/trainers"),
+  create: (data: TrainerCreate) =>
+    api.post<import("@/types").User>("/trainers", data),
+  update: (id: string, data: TrainerUpdate) =>
+    api.put<import("@/types").User>(`/trainers/${id}`, data),
+  delete: (id: string) => api.delete(`/trainers/${id}`),
 };
 
 export default api;

@@ -131,7 +131,7 @@ kinetica/
       payments.py           # CRUD /payments (member_packages)
       packages.py           # CRUD /packages (오너 전용)
       dashboard.py          # GET /dashboard, /dashboard/today, /dashboard/expiring
-      trainers.py           # GET /trainers (활성 트레이너 목록)
+      trainers.py           # CRUD /trainers (목록/생성/수정/비활성화, 오너 전용)
     services/
       auth.py               # PyJWT 생성/검증, bcrypt, get_current_user dependency
   frontend/
@@ -151,6 +151,7 @@ kinetica/
         sessions/page.tsx   # 수업 스케줄 (날짜 필터, 상태 변경, 예약 다이얼로그)
         payments/page.tsx   # 결제 기록 (통계, 상태 필터, 결제 테이블)
         packages/page.tsx   # 패키지 관리 (CRUD, 오너만)
+        trainers/page.tsx   # 트레이너 관리 (목록, 추가, 비활성화, 오너만)
     contexts/
       AuthContext.tsx        # useAuth 훅 (JWT + 유저 상태, localStorage 자동 복원)
     services/
@@ -220,8 +221,11 @@ GET/PUT         /payments/{id}       — 결제 상세/상태 수정
 # 패키지 (오너 전용)
 GET/POST/PUT/DELETE /packages        — 패키지 상품 CRUD
 
-# 트레이너
-GET /trainers                        — 활성 트레이너 목록
+# 트레이너 (오너 전용: POST/PUT/DELETE)
+GET    /trainers                     — 트레이너 목록 (활성+비활성 전체)
+POST   /trainers                     — 트레이너 계정 생성 (같은 gym_id 자동 설정)
+PUT    /trainers/{id}                — 트레이너 정보 수정 (name, phone, is_active)
+DELETE /trainers/{id}                — 트레이너 비활성화 (is_active=False, 삭제 아님)
 
 # 대시보드
 GET /dashboard                       — 통계 (오늘 수업수, 만료 예정, 미결제, 활성회원)
@@ -242,16 +246,6 @@ GET /health                          — 헬스 체크
 4. **DB 초기화**: `lifespan` 콜백으로 앱 시작 시 테이블 자동 생성
 
 ---
-
-## 알려진 이슈 & 해결됨
-
-| 이슈 | 원인 | 해결 |
-|------|------|------|
-| bcrypt 오류 | passlib과 최신 bcrypt 호환성 문제 | `bcrypt==3.2.2` 고정 |
-| DB 연결 실패 | WSL2에서 `localhost` ≠ Windows | `.env`에 `172.24.64.1` 사용 |
-| DB 연결 끊김 | `pg_hba.conf`에 WSL 서브넷 미허용 | `172.24.0.0/8` 추가 |
-| 로그인 422 오류 | 프론트가 form-encoded 전송, 백엔드는 JSON 기대 | `api.ts` JSON으로 수정 |
-| 대시보드 404 | 프론트·백엔드 엔드포인트 이름 불일치 | `api.ts` URL 수정 |
 
 ## 알려진 이슈 (모두 해결됨)
 
