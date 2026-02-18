@@ -41,12 +41,14 @@ export default function MembersPage() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [goalInput, setGoalInput] = useState("");
   const [form, setForm] = useState({
     name: "",
     phone: "",
     email: "",
     notes: "",
     trainer_id: "",
+    goals: [] as string[],
   });
 
   const { data: members, isLoading } = useQuery<Member[]>({
@@ -65,7 +67,8 @@ export default function MembersPage() {
       queryClient.invalidateQueries({ queryKey: ["members"] });
       toast.success("회원이 추가되었습니다");
       setDialogOpen(false);
-      setForm({ name: "", phone: "", email: "", notes: "", trainer_id: "" });
+      setGoalInput("");
+      setForm({ name: "", phone: "", email: "", notes: "", trainer_id: "", goals: [] });
     },
     onError: () => toast.error("오류가 발생했습니다"),
   });
@@ -76,6 +79,21 @@ export default function MembersPage() {
       m.phone.includes(search)
   );
 
+  const addGoalTag = () => {
+    const tag = goalInput.trim();
+    if (tag && !form.goals.includes(tag)) {
+      setForm({ ...form, goals: [...form.goals, tag] });
+    }
+    setGoalInput("");
+  };
+
+  const handleGoalKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addGoalTag();
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate({
@@ -84,6 +102,7 @@ export default function MembersPage() {
       email: form.email || undefined,
       notes: form.notes || undefined,
       trainer_id: form.trainer_id || undefined,
+      goals: form.goals,
     });
   };
 
@@ -274,6 +293,41 @@ export default function MembersPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>목표 태그</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={goalInput}
+                  onChange={(e) => setGoalInput(e.target.value)}
+                  onKeyDown={handleGoalKeyDown}
+                  placeholder="예: 바디빌딩, 다이어트 (Enter로 추가)"
+                />
+                <Button type="button" variant="outline" onClick={addGoalTag}>
+                  추가
+                </Button>
+              </div>
+              {form.goals.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {form.goals.map((g) => (
+                    <span
+                      key={g}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700"
+                    >
+                      {g}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setForm({ ...form, goals: form.goals.filter((x) => x !== g) })
+                        }
+                        className="hover:text-indigo-900"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="notes">메모</Label>

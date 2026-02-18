@@ -22,7 +22,7 @@ def _member_query(gym_id: int, user: User):
     query = (
         select(Member)
         .where(Member.gym_id == gym_id, Member.is_active == True)
-        .options(selectinload(Member.member_packages))
+        .options(selectinload(Member.member_packages), selectinload(Member.trainer))
     )
     if user.role == UserRole.trainer:
         query = query.where(Member.trainer_id == user.id)
@@ -71,7 +71,7 @@ async def create_member(
     result = await db.execute(
         select(Member)
         .where(Member.id == member.id)
-        .options(selectinload(Member.member_packages))
+        .options(selectinload(Member.member_packages), selectinload(Member.trainer))
     )
     return result.scalar_one()
 
@@ -85,7 +85,7 @@ async def get_member(
     result = await db.execute(
         select(Member)
         .where(Member.id == member_id, Member.gym_id == current_user.gym_id)
-        .options(selectinload(Member.member_packages))
+        .options(selectinload(Member.member_packages), selectinload(Member.trainer))
     )
     member = result.scalar_one_or_none()
     if not member:
@@ -109,7 +109,7 @@ async def update_member(
     result = await db.execute(
         select(Member)
         .where(Member.id == member_id, Member.gym_id == current_user.gym_id)
-        .options(selectinload(Member.member_packages))
+        .options(selectinload(Member.member_packages), selectinload(Member.trainer))
     )
     member = result.scalar_one_or_none()
     if not member:
@@ -140,7 +140,7 @@ async def update_member(
     result = await db.execute(
         select(Member)
         .where(Member.id == member_id)
-        .options(selectinload(Member.member_packages))
+        .options(selectinload(Member.member_packages), selectinload(Member.trainer))
     )
     return result.scalar_one()
 

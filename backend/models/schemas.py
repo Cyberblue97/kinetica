@@ -162,6 +162,7 @@ class MemberResponse(BaseModel):
     id: int
     gym_id: int
     trainer_id: Optional[int]
+    trainer: Optional["TrainerBasic"] = None
     name: str
     email: Optional[str]
     phone: Optional[str]
@@ -269,6 +270,7 @@ class TrainerBasic(BaseModel):
     model_config = {"from_attributes": True}
 
 
+MemberResponse.model_rebuild()
 SessionResponse.model_rebuild()
 
 
