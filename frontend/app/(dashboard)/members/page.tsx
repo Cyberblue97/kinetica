@@ -287,7 +287,7 @@ export default function MembersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {(trainers || []).map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
+                    <SelectItem key={t.id} value={String(t.id)}>
                       {t.name}
                     </SelectItem>
                   ))}
