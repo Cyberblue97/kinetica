@@ -40,7 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2, UserX } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, UserX, X } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { Member, Session, MemberPackage, Package, User } from "@/types";
@@ -74,7 +74,13 @@ export default function MemberDetailPage({
   const queryClient = useQueryClient();
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
+  const [goalInput, setGoalInput] = useState("");
   const [packageDialogOpen, setPackageDialogOpen] = useState(false);
+  const [adjustSessionsDialog, setAdjustSessionsDialog] = useState<{
+    open: boolean;
+    mp: MemberPackage | null;
+    value: number;
+  }>({ open: false, mp: null, value: 0 });
   const [editForm, setEditForm] = useState<Partial<Member>>({});
   const [pkgForm, setPkgForm] = useState({
     package_id: "",
@@ -148,6 +154,17 @@ export default function MemberDetailPage({
     onError: () => toast.error("오류가 발생했습니다"),
   });
 
+  const adjustSessionsMutation = useMutation({
+    mutationFn: ({ mpId, sessions_remaining }: { mpId: string; sessions_remaining: number }) =>
+      paymentsApi.update(mpId, { sessions_remaining }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["member-packages", id] });
+      toast.success("잔여 세션이 수정되었습니다");
+      setAdjustSessionsDialog({ open: false, mp: null, value: 0 });
+    },
+    onError: () => toast.error("오류가 발생했습니다"),
+  });
+
   const openEdit = () => {
     if (member) {
       setEditForm({
@@ -156,8 +173,36 @@ export default function MemberDetailPage({
         email: member.email,
         notes: member.notes,
         trainer_id: member.trainer_id,
+        goals: member.goals || [],
       });
+      setGoalInput("");
       setEditOpen(true);
+    }
+  };
+
+  const addGoalTag = (input: string) => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    const current = editForm.goals || [];
+    if (current.includes(trimmed)) return;
+    setEditForm({ ...editForm, goals: [...current, trimmed] });
+    setGoalInput("");
+  };
+
+  const removeGoalTag = (tag: string) => {
+    setEditForm({
+      ...editForm,
+      goals: (editForm.goals || []).filter((g) => g !== tag),
+    });
+  };
+
+  const handleGoalKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addGoalTag(goalInput);
+    } else if (e.key === ",") {
+      e.preventDefault();
+      addGoalTag(goalInput);
     }
   };
 
@@ -293,6 +338,25 @@ export default function MemberDetailPage({
                     {member.notes || "—"}
                   </dd>
                 </div>
+                <div className="col-span-2">
+                  <dt className="text-sm text-slate-500">목표</dt>
+                  <dd className="mt-1">
+                    {member.goals && member.goals.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {member.goals.map((goal) => (
+                          <span
+                            key={goal}
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700"
+                          >
+                            {goal}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-sm font-medium text-slate-900">—</span>
+                    )}
+                  </dd>
+                </div>
               </dl>
             </CardContent>
           </Card>
@@ -355,7 +419,23 @@ export default function MemberDetailPage({
                           <TableCell>
                             {format(new Date(mp.expiry_date), "yyyy.MM.dd")}
                           </TableCell>
-                          <TableCell>{mp.sessions_remaining}회</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <span>{mp.sessions_remaining}회</span>
+                              <button
+                                onClick={() =>
+                                  setAdjustSessionsDialog({
+                                    open: true,
+                                    mp,
+                                    value: mp.sessions_remaining,
+                                  })
+                                }
+                                className="text-slate-400 hover:text-slate-700 p-0.5 rounded"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </TableCell>
                           <TableCell>
                             {mp.price_paid.toLocaleString()}원
                           </TableCell>
@@ -519,6 +599,35 @@ export default function MemberDetailPage({
                 rows={3}
               />
             </div>
+            <div className="space-y-2">
+              <Label>목표</Label>
+              {(editForm.goals || []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {(editForm.goals || []).map((goal) => (
+                    <span
+                      key={goal}
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700"
+                    >
+                      {goal}
+                      <button
+                        type="button"
+                        onClick={() => removeGoalTag(goal)}
+                        className="hover:text-indigo-900"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <Input
+                value={goalInput}
+                onChange={(e) => setGoalInput(e.target.value)}
+                onKeyDown={handleGoalKeyDown}
+                onBlur={() => addGoalTag(goalInput)}
+                placeholder="목표 입력 후 Enter"
+              />
+            </div>
             <DialogFooter>
               <Button
                 type="button"
@@ -532,6 +641,63 @@ export default function MemberDetailPage({
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adjust Sessions Dialog */}
+      <Dialog
+        open={adjustSessionsDialog.open}
+        onOpenChange={(open) =>
+          setAdjustSessionsDialog({ open, mp: null, value: 0 })
+        }
+      >
+        <DialogContent className="sm:max-w-xs">
+          <DialogHeader>
+            <DialogTitle>잔여 세션 수정</DialogTitle>
+          </DialogHeader>
+          {adjustSessionsDialog.mp && (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-500">
+                현재: {adjustSessionsDialog.mp.sessions_remaining}회 (최대:{" "}
+                {adjustSessionsDialog.mp.sessions_total}회)
+              </p>
+              <Input
+                type="number"
+                min={0}
+                max={adjustSessionsDialog.mp.sessions_total}
+                value={adjustSessionsDialog.value}
+                onChange={(e) =>
+                  setAdjustSessionsDialog((prev) => ({
+                    ...prev,
+                    value: Number(e.target.value),
+                  }))
+                }
+              />
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setAdjustSessionsDialog({ open: false, mp: null, value: 0 })
+              }
+            >
+              취소
+            </Button>
+            <Button
+              disabled={adjustSessionsMutation.isPending}
+              onClick={() => {
+                if (adjustSessionsDialog.mp) {
+                  adjustSessionsMutation.mutate({
+                    mpId: String(adjustSessionsDialog.mp.id),
+                    sessions_remaining: adjustSessionsDialog.value,
+                  });
+                }
+              }}
+            >
+              {adjustSessionsMutation.isPending ? "저장 중..." : "저장"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

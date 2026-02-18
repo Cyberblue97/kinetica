@@ -1,5 +1,4 @@
 # Kinetica — CRM for Gyms & PT Studios
-
 헬스장/PT샵 사장·트레이너를 위한 비즈니스 운영 플랫폼.
 
 ## 실행 명령어
@@ -146,10 +145,11 @@ kinetica/
         layout.tsx          # 사이드바 + 인증 보호 (미로그인 → /login 리다이렉트)
         page.tsx            # 대시보드 (통계 카드 + 오늘 수업 + 만료 예정)
         members/
-          page.tsx          # 회원 목록 (검색, 추가 다이얼로그, 잔여 세션 표시)
+          page.tsx          # 회원 목록 (검색, 추가 다이얼로그, 잔여 세션·목표 태그 표시)
           [id]/page.tsx     # 회원 상세 (탭: 기본정보, 패키지/결제, 수업이력)
                            # 헤더: 회원 비활성화 버튼
-                           # 패키지/결제 탭: 패키지 삭제 버튼
+                           # 기본정보 탭: 목표 태그 표시 및 편집 (Enter/콤마로 추가)
+                           # 패키지/결제 탭: 잔여 세션 수동 조정(✏️), 패키지 삭제 버튼
         sessions/page.tsx   # 수업 스케줄 (날짜 필터, 상태 변경, 예약 다이얼로그)
         payments/page.tsx   # 결제 기록 (통계, 상태 필터, 결제 테이블)
         packages/page.tsx   # 패키지 관리 (CRUD, 오너만)
@@ -174,7 +174,7 @@ kinetica/
 |--------|------|---------|
 | **gyms** | 헬스장/스튜디오 | id, name, type(gym/personal_studio), address, phone, is_active |
 | **users** | 오너/트레이너 계정 | id, gym_id, email, hashed_password, name, role(owner/trainer/member), phone, is_active |
-| **members** | 회원/고객 | id, gym_id, trainer_id, name, email, phone, birth_date, notes, is_active |
+| **members** | 회원/고객 | id, gym_id, trainer_id, name, email, phone, birth_date, notes, goals(VARCHAR[]), is_active |
 | **packages** | 패키지 상품 | id, gym_id, name, description, total_sessions, price, validity_days, is_active |
 | **member_packages** | 회원이 구매한 패키지 | id, member_id, package_id, sessions_total, sessions_remaining, price_paid, payment_method, payment_status, start_date, expiry_date |
 | **sessions** | 개별 수업 세션 | id, member_id, trainer_id, member_package_id, scheduled_at, duration_minutes, status, notes |
@@ -244,8 +244,10 @@ GET /health                          — 헬스 체크
 
 1. **세션 완료 시 자동 차감**: `PUT /sessions/{id}` status → "completed" → `sessions_remaining` -1
 2. **세션 삭제 시 복구**: 완료된 세션 삭제 시 `sessions_remaining` +1
-3. **패키지 만료 계산**: `expiry_date = start_date + validity_days`
-4. **DB 초기화**: `lifespan` 콜백으로 앱 시작 시 테이블 자동 생성
+3. **잔여 세션 수동 조정**: `PUT /payments/{id}` body `{ sessions_remaining: N }` — 0 이상, sessions_total 이하
+4. **패키지 만료 계산**: `expiry_date = start_date + validity_days`
+5. **DB 초기화**: `lifespan` 콜백으로 앱 시작 시 `create_all` + 컬럼 추가 마이그레이션 실행
+   - 새 컬럼 추가 패턴: `lifespan`에 `ALTER TABLE … ADD COLUMN IF NOT EXISTS` 추가 (idempotent)
 
 ---
 

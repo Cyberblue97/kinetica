@@ -131,6 +131,7 @@ class MemberCreate(BaseModel):
     birth_date: Optional[date] = None
     notes: Optional[str] = None
     trainer_id: Optional[int] = None
+    goals: List[str] = []
 
 
 class MemberUpdate(BaseModel):
@@ -141,6 +142,7 @@ class MemberUpdate(BaseModel):
     notes: Optional[str] = None
     trainer_id: Optional[int] = None
     is_active: Optional[bool] = None
+    goals: Optional[List[str]] = None
 
 
 class MemberPackageSummary(BaseModel):
@@ -165,6 +167,7 @@ class MemberResponse(BaseModel):
     phone: Optional[str]
     birth_date: Optional[date]
     notes: Optional[str]
+    goals: List[str] = []
     is_active: bool
     created_at: datetime
     member_packages: List[MemberPackageSummary] = []
@@ -189,6 +192,7 @@ class MemberPackageUpdate(BaseModel):
     payment_method: Optional[PaymentMethod] = None
     payment_status: Optional[PaymentStatus] = None
     notes: Optional[str] = None
+    sessions_remaining: Optional[int] = Field(None, ge=0)
 
 
 class MemberPackageResponse(BaseModel):

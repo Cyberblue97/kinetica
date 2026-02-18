@@ -64,6 +64,7 @@ async def create_member(
         phone=payload.phone,
         birth_date=payload.birth_date,
         notes=payload.notes,
+        goals=payload.goals,
     )
     db.add(member)
     await db.commit()

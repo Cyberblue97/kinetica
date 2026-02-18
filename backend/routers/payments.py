@@ -175,6 +175,15 @@ async def update_payment(
             status_code=status.HTTP_404_NOT_FOUND, detail="Payment record not found"
         )
 
+    if (
+        payload.sessions_remaining is not None
+        and payload.sessions_remaining > mp.sessions_total
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"sessions_remaining cannot exceed sessions_total ({mp.sessions_total})",
+        )
+
     for field, value in payload.model_dump(exclude_unset=True).items():
         setattr(mp, field, value)
 

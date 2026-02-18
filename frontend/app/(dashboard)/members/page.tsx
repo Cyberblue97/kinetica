@@ -127,6 +127,9 @@ export default function MembersPage() {
                 상태
               </TableHead>
               <TableHead className="font-semibold text-slate-600">
+                목표
+              </TableHead>
+              <TableHead className="font-semibold text-slate-600">
                 잔여 세션
               </TableHead>
               <TableHead className="font-semibold text-slate-600">
@@ -138,7 +141,7 @@ export default function MembersPage() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 6 }).map((_, j) => (
+                  {Array.from({ length: 7 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-4 w-full" />
                     </TableCell>
@@ -148,7 +151,7 @@ export default function MembersPage() {
             ) : filtered.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="text-center py-12 text-slate-400"
                 >
                   {search ? "검색 결과가 없습니다" : "등록된 회원이 없습니다"}
@@ -177,6 +180,27 @@ export default function MembersPage() {
                     >
                       {member.is_active ? "활성" : "비활성"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {member.goals && member.goals.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {member.goals.slice(0, 2).map((goal) => (
+                          <span
+                            key={goal}
+                            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700"
+                          >
+                            {goal}
+                          </span>
+                        ))}
+                        {member.goals.length > 2 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+                            +{member.goals.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-slate-600">
                     {totalRemaining(member)}회

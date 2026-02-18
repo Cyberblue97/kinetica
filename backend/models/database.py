@@ -2,7 +2,7 @@ import enum
 from datetime import date, datetime
 from typing import List, Optional
 
-from sqlalchemy import Boolean, Date, DateTime
+from sqlalchemy import ARRAY, Boolean, Date, DateTime
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -107,6 +107,9 @@ class Member(Base):
     phone: Mapped[Optional[str]] = mapped_column(String(50))
     birth_date: Mapped[Optional[date]] = mapped_column(Date)
     notes: Mapped[Optional[str]] = mapped_column(Text)
+    goals: Mapped[List[str]] = mapped_column(
+        ARRAY(String), server_default="{}", nullable=False
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False

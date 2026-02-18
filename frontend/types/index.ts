@@ -40,6 +40,7 @@ export interface Member {
   phone: string;
   email?: string;
   notes?: string;
+  goals?: string[];
   is_active: boolean;
   trainer_id?: string;
   trainer?: User;
