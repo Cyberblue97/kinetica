@@ -44,6 +44,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 };
 
 type SessionForm = {
+  member_id: string;
   member_package_id: string;
   trainer_id: string;
   scheduled_at: string;
@@ -56,6 +57,7 @@ export default function SessionsPage() {
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<SessionForm>({
+    member_id: "",
     member_package_id: "",
     trainer_id: "",
     scheduled_at: `${todayStr}T09:00`,
@@ -84,6 +86,7 @@ export default function SessionsPage() {
       toast.success("수업이 예약되었습니다");
       setDialogOpen(false);
       setForm({
+        member_id: "",
         member_package_id: "",
         trainer_id: "",
         scheduled_at: `${todayStr}T09:00`,
@@ -106,6 +109,7 @@ export default function SessionsPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     createMutation.mutate({
+      member_id: form.member_id,
       member_package_id: form.member_package_id,
       trainer_id: form.trainer_id,
       scheduled_at: new Date(form.scheduled_at).toISOString(),
@@ -114,11 +118,11 @@ export default function SessionsPage() {
   };
 
   const handlePackageSelect = (packageId: string) => {
-    const mp = memberPackages?.find((p) => p.id === packageId);
+    const mp = memberPackages?.find((p) => String(p.id) === packageId);
     setForm((prev) => ({
       ...prev,
+      member_id: mp ? String(mp.member_id) : prev.member_id,
       member_package_id: packageId,
-      trainer_id: mp?.trainer_id || prev.trainer_id,
     }));
   };
 
@@ -287,7 +291,7 @@ export default function SessionsPage() {
                   {(memberPackages || [])
                     .filter((mp) => mp.sessions_remaining > 0)
                     .map((mp) => (
-                      <SelectItem key={mp.id} value={mp.id}>
+                      <SelectItem key={mp.id} value={String(mp.id)}>
                         {mp.member?.name || "?"} —{" "}
                         {mp.package?.name || "패키지"} ({mp.sessions_remaining}
                         회 남음)
@@ -309,7 +313,7 @@ export default function SessionsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {(trainers || []).map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
+                    <SelectItem key={t.id} value={String(t.id)}>
                       {t.name}
                     </SelectItem>
                   ))}

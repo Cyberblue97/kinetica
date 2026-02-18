@@ -97,8 +97,12 @@ async def create_session(
     )
     db.add(session)
     await db.commit()
-    await db.refresh(session, ["member", "trainer"])
-    return session
+    result = await db.execute(
+        select(Session)
+        .where(Session.id == session.id)
+        .options(selectinload(Session.member), selectinload(Session.trainer))
+    )
+    return result.scalar_one()
 
 
 @router.put("/{session_id}", response_model=SessionResponse)
@@ -161,8 +165,12 @@ async def update_session(
                 mp.sessions_remaining += 1
 
     await db.commit()
-    await db.refresh(session, ["member", "trainer"])
-    return session
+    result = await db.execute(
+        select(Session)
+        .where(Session.id == session_id)
+        .options(selectinload(Session.member), selectinload(Session.trainer))
+    )
+    return result.scalar_one()
 
 
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
