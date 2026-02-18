@@ -76,7 +76,6 @@ export default function MemberDetailPage({
   const [editForm, setEditForm] = useState<Partial<Member>>({});
   const [pkgForm, setPkgForm] = useState({
     package_id: "",
-    trainer_id: "",
     start_date: format(new Date(), "yyyy-MM-dd"),
     amount_paid: "",
     payment_method: "card",
@@ -499,26 +498,8 @@ export default function MemberDetailPage({
                 </SelectTrigger>
                 <SelectContent>
                   {(packages || []).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
+                    <SelectItem key={p.id} value={String(p.id)}>
                       {p.name} ({p.total_sessions}회, {p.validity_days}일)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>담당 트레이너 *</Label>
-              <Select
-                value={pkgForm.trainer_id}
-                onValueChange={(v) => setPkgForm({ ...pkgForm, trainer_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="트레이너 선택" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(trainers || []).map((t) => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

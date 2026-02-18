@@ -88,8 +88,15 @@ async def create_payment(
     )
     db.add(mp)
     await db.commit()
-    await db.refresh(mp, ["member", "package"])
-    return mp
+    result = await db.execute(
+        select(MemberPackage)
+        .where(MemberPackage.id == mp.id)
+        .options(
+            selectinload(MemberPackage.member),
+            selectinload(MemberPackage.package),
+        )
+    )
+    return result.scalar_one()
 
 
 @router.get("/{payment_id}", response_model=MemberPackageResponse)
