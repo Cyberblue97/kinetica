@@ -285,10 +285,10 @@ export default function SessionsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {(memberPackages || [])
-                    .filter((mp) => mp.is_active && mp.sessions_remaining > 0)
+                    .filter((mp) => mp.sessions_remaining > 0)
                     .map((mp) => (
                       <SelectItem key={mp.id} value={mp.id}>
-                        {mp.trainer?.name || "?"} —{" "}
+                        {mp.member?.name || "?"} —{" "}
                         {mp.package?.name || "패키지"} ({mp.sessions_remaining}
                         회 남음)
                       </SelectItem>

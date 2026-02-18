@@ -46,7 +46,7 @@ export const sessionsApi = {
   update: (id: string, data: Partial<Session>) =>
     api.put<Session>(`/sessions/${id}`, data),
   updateStatus: (id: string, status: string) =>
-    api.patch(`/sessions/${id}/status`, { status }),
+    api.put(`/sessions/${id}`, { status }),
 };
 
 export const paymentsApi = {

@@ -79,87 +79,167 @@ host    all    all    172.24.0.0/8    scram-sha-256
 
 ---
 
+## 기술 스택
+
+### 백엔드
+| 패키지 | 버전 | 용도 |
+|--------|------|------|
+| FastAPI | 0.129.0 | 웹 프레임워크 |
+| uvicorn | 0.30.0 | ASGI 서버 |
+| SQLAlchemy[asyncio] | 2.0.36 | ORM (비동기) |
+| asyncpg | 0.29.0 | PostgreSQL 드라이버 |
+| alembic | 1.13.3 | DB 마이그레이션 |
+| PyJWT[crypto] | 2.11.0 | JWT 인증 |
+| passlib[bcrypt] | 1.7.4 | 비밀번호 해싱 |
+| bcrypt | 3.2.2 | **고정** (호환성 문제) |
+| pydantic-settings | 2.5.2 | 설정 관리 |
+| pydantic[email] | 2.9.2 | 스키마 검증 |
+
+### 프론트엔드
+| 패키지 | 버전 | 용도 |
+|--------|------|------|
+| Next.js | 16.1.6 | React 프레임워크 |
+| React | 19.2.3 | UI 라이브러리 |
+| TanStack Query | 5.90.21 | 서버 상태 관리 |
+| Axios | 1.13.5 | HTTP 클라이언트 |
+| Tailwind CSS | 4 | 스타일링 |
+| Radix UI | 1.4.3 | 헤드리스 UI (Shadcn 기반) |
+| React Hook Form | 7.71.1 | 폼 상태 관리 |
+| Zod | 4.3.6 | 스키마 검증 |
+| date-fns | 4.1.0 | 날짜 처리 |
+| lucide-react | 0.574.0 | 아이콘 |
+| sonner | 2.0.7 | 토스트 알림 |
+
+---
+
 ## 프로젝트 구조
 
 ```
 kinetica/
   backend/
-    main.py              # FastAPI 앱 진입점 (lifespan으로 테이블 자동 생성)
-    config.py            # pydantic-settings 설정
-    requirements.txt     # PyJWT, passlib[bcrypt]==bcrypt 3.2.2 고정
+    main.py                 # FastAPI 앱 (lifespan 자동 테이블 생성, 7개 라우터)
+    config.py               # pydantic-settings (DB URL, SECRET_KEY)
+    requirements.txt
+    .env.example
     models/
-      database.py        # SQLAlchemy 비동기 모델 (6개 테이블)
-      schemas.py         # Pydantic v2 스키마
+      database.py           # SQLAlchemy 비동기 모델 (6개 테이블)
+      schemas.py            # Pydantic v2 요청/응답 스키마
     routers/
-      auth.py            # POST /auth/register, /auth/login, GET /auth/me
-      members.py         # CRUD /members
-      sessions.py        # CRUD /sessions (날짜 필터)
-      payments.py        # CRUD /payments (member_packages)
-      packages.py        # CRUD /packages
-      dashboard.py       # GET /dashboard, /dashboard/today, /dashboard/expiring
+      auth.py               # POST /auth/register, /auth/login, GET /auth/me
+      members.py            # CRUD /members + /members/{id}/sessions, packages
+      sessions.py           # CRUD /sessions (날짜 필터, 상태 변경 시 세션 자동 차감)
+      payments.py           # CRUD /payments (member_packages)
+      packages.py           # CRUD /packages (오너 전용)
+      dashboard.py          # GET /dashboard, /dashboard/today, /dashboard/expiring
+      trainers.py           # GET /trainers (활성 트레이너 목록)
     services/
-      auth.py            # PyJWT 생성/검증, bcrypt, get_current_user dependency
+      auth.py               # PyJWT 생성/검증, bcrypt, get_current_user dependency
   frontend/
     app/
-      (auth)/login/      # 로그인 페이지
-      (dashboard)/       # 보호된 페이지들 (사이드바 레이아웃)
-        page.tsx         # 대시보드
-        members/         # 회원 목록 + [id] 상세
-        sessions/        # 수업 스케줄
-        payments/        # 결제 기록
-        packages/        # 패키지 관리
+      layout.tsx            # Root layout
+      providers.tsx         # React Query + Auth 제공자
+      globals.css
+      (auth)/
+        layout.tsx
+        login/page.tsx      # 로그인 페이지
+      (dashboard)/
+        layout.tsx          # 사이드바 + 인증 보호 (미로그인 → /login 리다이렉트)
+        page.tsx            # 대시보드 (통계 카드 + 오늘 수업 + 만료 예정)
+        members/
+          page.tsx          # 회원 목록 (검색, 추가 다이얼로그, 잔여 세션 표시)
+          [id]/page.tsx     # 회원 상세 (탭: 기본정보, 패키지/결제, 수업이력)
+        sessions/page.tsx   # 수업 스케줄 (날짜 필터, 상태 변경, 예약 다이얼로그)
+        payments/page.tsx   # 결제 기록 (통계, 상태 필터, 결제 테이블)
+        packages/page.tsx   # 패키지 관리 (CRUD, 오너만)
     contexts/
-      AuthContext.tsx    # JWT 토큰 + 유저 상태 관리
+      AuthContext.tsx        # useAuth 훅 (JWT + 유저 상태, localStorage 자동 복원)
     services/
-      api.ts             # axios 인스턴스 + 모든 API 함수
-    types/index.ts       # 공유 TypeScript 타입
+      api.ts                # Axios 인스턴스 + 모든 API 함수
+    types/
+      index.ts              # 공유 TypeScript 타입
+    lib/
+      utils.ts              # cn() Tailwind 유틸
+    components/
+      ui/                   # Shadcn UI 컴포넌트 (button, input, dialog, table 등)
 ```
 
 ---
 
 ## 데이터 모델 (6개 테이블)
 
-| 테이블 | 설명 |
-|--------|------|
-| gyms | 헬스장/스튜디오 |
-| users | 오너/트레이너 계정 (JWT 인증) |
-| members | 고객 회원 |
-| packages | 패키지 상품 정의 (PT 10회권 등) |
-| member_packages | 회원이 구매한 패키지 인스턴스 (결제 정보 포함) |
-| sessions | 개별 수업 세션 |
+| 테이블 | 설명 | 주요 필드 |
+|--------|------|---------|
+| **gyms** | 헬스장/스튜디오 | id, name, type(gym/personal_studio), address, phone, is_active |
+| **users** | 오너/트레이너 계정 | id, gym_id, email, hashed_password, name, role(owner/trainer/member), phone, is_active |
+| **members** | 회원/고객 | id, gym_id, trainer_id, name, email, phone, birth_date, notes, is_active |
+| **packages** | 패키지 상품 | id, gym_id, name, description, total_sessions, price, validity_days, is_active |
+| **member_packages** | 회원이 구매한 패키지 | id, member_id, package_id, sessions_total, sessions_remaining, price_paid, payment_method, payment_status, start_date, expiry_date |
+| **sessions** | 개별 수업 세션 | id, member_id, trainer_id, member_package_id, scheduled_at, duration_minutes, status, notes |
+
+### Enum 타입
+- **UserRole**: owner, trainer, member
+- **GymType**: gym, personal_studio
+- **SessionStatus**: scheduled, completed, no_show, cancelled
+- **PaymentMethod**: cash, card, transfer, online_mock
+- **PaymentStatus**: paid, pending, overdue
 
 ---
 
-## 역할 기반 접근 제어
+## 역할 기반 접근 제어 (RBAC)
 
-- **오너(owner)**: 헬스장 전체 데이터 조회/수정 가능
+- **오너(owner)**: 헬스장 전체 데이터 조회/수정 가능. 패키지 CRUD 전용 권한.
 - **트레이너(trainer)**: 담당 회원(`trainer_id` 일치)만 조회 가능
 - 모든 라우터에서 `get_current_user` dependency로 JWT 검증
 
 ---
 
-## API 엔드포인트 요약
+## API 엔드포인트 전체 목록
 
 ```
+# 인증
 POST /auth/register         — 첫 오너 계정 + 헬스장 자동 생성 (JSON body)
 POST /auth/login            — JWT 반환 (JSON body: email, password)
 GET  /auth/me               — 현재 유저 정보
 
-GET/POST        /members        — 회원 목록/추가
-GET/PUT/DELETE  /members/{id}   — 회원 상세/수정/비활성화
+# 회원
+GET/POST        /members             — 회원 목록/추가
+GET/PUT/DELETE  /members/{id}        — 회원 상세/수정/비활성화
+GET             /members/{id}/sessions  — 회원의 수업 이력
+GET             /members/{id}/packages  — 회원의 패키지/결제 이력
 
-GET/POST        /sessions       — 수업 목록/예약 (?date=YYYY-MM-DD)
-PUT/DELETE      /sessions/{id}  — 상태 변경/삭제 (완료 시 sessions_remaining 차감)
+# 수업
+GET/POST        /sessions            — 수업 목록/예약 (?date=YYYY-MM-DD)
+PUT/DELETE      /sessions/{id}       — 상태 변경/삭제
+                                       완료 시 sessions_remaining 자동 차감
+                                       완료된 세션 삭제 시 sessions_remaining 복구
 
-GET/POST  /payments         — 결제 목록/패키지 구매
-PUT       /payments/{id}    — 결제 상태 수정
+# 결제
+GET/POST        /payments            — 결제 목록/패키지 구매
+GET/PUT         /payments/{id}       — 결제 상세/상태 수정
 
-GET/POST/PUT/DELETE /packages — 패키지 상품 CRUD
+# 패키지 (오너 전용)
+GET/POST/PUT/DELETE /packages        — 패키지 상품 CRUD
 
-GET /dashboard              — 통계 (오늘 수업수, 만료 예정, 미결제, 활성회원)
-GET /dashboard/today        — 오늘 수업 목록
-GET /dashboard/expiring     — 이번 주 만료 패키지 목록
+# 트레이너
+GET /trainers                        — 활성 트레이너 목록
+
+# 대시보드
+GET /dashboard                       — 통계 (오늘 수업수, 만료 예정, 미결제, 활성회원)
+GET /dashboard/today                 — 오늘 수업 목록
+GET /dashboard/expiring              — 이번 주 만료 예정 패키지 목록
+
+# 기타
+GET /health                          — 헬스 체크
 ```
+
+---
+
+## 주요 비즈니스 로직
+
+1. **세션 완료 시 자동 차감**: `PUT /sessions/{id}` status → "completed" → `sessions_remaining` -1
+2. **세션 삭제 시 복구**: 완료된 세션 삭제 시 `sessions_remaining` +1
+3. **패키지 만료 계산**: `expiry_date = start_date + validity_days`
+4. **DB 초기화**: `lifespan` 콜백으로 앱 시작 시 테이블 자동 생성
 
 ---
 
@@ -173,6 +253,8 @@ GET /dashboard/expiring     — 이번 주 만료 패키지 목록
 | 로그인 422 오류 | 프론트가 form-encoded 전송, 백엔드는 JSON 기대 | `api.ts` JSON으로 수정 |
 | 대시보드 404 | 프론트·백엔드 엔드포인트 이름 불일치 | `api.ts` URL 수정 |
 
+## 알려진 이슈 (모두 해결됨)
+
 ---
 
 ## 향후 확장 계획
@@ -184,9 +266,3 @@ GET /dashboard/expiring     — 이번 주 만료 패키지 목록
 | Phase 4 | AI 논문 요약 (트레이너용, Claude API) |
 | Phase 5 | AI 음식 사진 칼로리/영양소 추정 (Vision API) |
 | Phase 6 | React Native 모바일 앱 |
-
-## 배포 (향후)
-
-- Backend → Railway
-- Frontend → Vercel
-- DB → Railway PostgreSQL 또는 Neon

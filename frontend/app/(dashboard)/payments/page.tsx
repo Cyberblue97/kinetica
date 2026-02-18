@@ -49,13 +49,15 @@ const paymentStatusConfig: Record<
 export default function PaymentsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
 
-  const { data: payments, isLoading } = useQuery<MemberPackage[]>({
-    queryKey: ["payments", statusFilter],
-    queryFn: () =>
-      paymentsApi
-        .getAll(statusFilter === "all" ? undefined : statusFilter)
-        .then((r) => r.data),
+  const { data: allPayments, isLoading } = useQuery<MemberPackage[]>({
+    queryKey: ["payments"],
+    queryFn: () => paymentsApi.getAll().then((r) => r.data),
   });
+
+  const payments =
+    statusFilter === "all"
+      ? allPayments
+      : allPayments?.filter((p) => p.payment_status === statusFilter);
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -67,10 +69,10 @@ export default function PaymentsPage() {
         const d = new Date(p.start_date);
         return p.payment_status === "paid" && d >= monthStart && d <= monthEnd;
       })
-      .reduce((sum, p) => sum + p.amount_paid, 0) ?? 0;
+      .reduce((sum, p) => sum + p.price_paid, 0) ?? 0;
 
   const unpaidCount =
-    payments?.filter((p) => p.payment_status !== "paid").length ?? 0;
+    allPayments?.filter((p) => p.payment_status !== "paid").length ?? 0;
 
   return (
     <div className="space-y-6">
@@ -172,13 +174,13 @@ export default function PaymentsPage() {
                 return (
                   <TableRow key={payment.id} className="hover:bg-slate-50">
                     <TableCell className="font-medium text-slate-900">
-                      {payment.trainer?.name || "—"}
+                      {payment.member?.name || "—"}
                     </TableCell>
                     <TableCell className="text-slate-600">
                       {payment.package?.name || "—"}
                     </TableCell>
                     <TableCell className="text-slate-900 font-medium">
-                      {payment.amount_paid.toLocaleString()}원
+                      {payment.price_paid.toLocaleString()}원
                     </TableCell>
                     <TableCell>
                       <span

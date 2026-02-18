@@ -44,6 +44,7 @@ export interface MemberPackage {
   member_id: string;
   package_id: string;
   package?: Package;
+  member?: { id: string; name: string; phone?: string; email?: string };
   start_date: string;
   expiry_date: string;
   sessions_remaining: number;
@@ -65,8 +66,25 @@ export interface Session {
 }
 
 export interface DashboardStats {
-  today_sessions_count: number;
-  expiring_packages_count: number;
-  unpaid_members_count: number;
-  active_members_count: number;
+  today_sessions: number;
+  expiring_packages_this_week: number;
+  unpaid_members: number;
+  active_members: number;
+}
+
+export interface TodaySession {
+  id: string;
+  scheduled_at: string;
+  duration_minutes: number;
+  status: SessionStatus;
+  member_name: string;
+  trainer_name: string;
+}
+
+export interface ExpiringPackage {
+  id: string;
+  member_name: string;
+  package_name: string;
+  sessions_remaining: number;
+  expiry_date: string;
 }
