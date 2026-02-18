@@ -129,6 +129,30 @@ async def get_payment(
     return mp
 
 
+@router.delete("/{payment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_payment(
+    payment_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: AsyncSession = Depends(get_db),
+):
+    if current_user.role != UserRole.owner:
+        raise HTTPException(status_code=403, detail="Owner only")
+
+    result = await db.execute(
+        select(MemberPackage)
+        .join(Member, MemberPackage.member_id == Member.id)
+        .where(MemberPackage.id == payment_id, Member.gym_id == current_user.gym_id)
+    )
+    mp = result.scalar_one_or_none()
+    if not mp:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Payment record not found"
+        )
+
+    await db.delete(mp)
+    await db.commit()
+
+
 @router.put("/{payment_id}", response_model=MemberPackageResponse)
 async def update_payment(
     payment_id: int,

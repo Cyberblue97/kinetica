@@ -39,7 +39,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { Member, Session, MemberPackage, Package, User } from "@/types";
@@ -123,6 +123,15 @@ export default function MemberDetailPage({
       queryClient.invalidateQueries({ queryKey: ["member-packages", id] });
       toast.success("패키지가 추가되었습니다");
       setPackageDialogOpen(false);
+    },
+    onError: () => toast.error("오류가 발생했습니다"),
+  });
+
+  const deletePackageMutation = useMutation({
+    mutationFn: (packageId: string) => paymentsApi.delete(packageId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["member-packages", id] });
+      toast.success("패키지가 삭제되었습니다");
     },
     onError: () => toast.error("오류가 발생했습니다"),
   });
@@ -289,6 +298,7 @@ export default function MemberDetailPage({
                     <TableHead className="font-semibold text-slate-600">
                       결제 상태
                     </TableHead>
+                    <TableHead />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -325,6 +335,21 @@ export default function MemberDetailPage({
                             >
                               {ps?.label}
                             </span>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                if (confirm("패키지를 삭제하시겠습니까?")) {
+                                  deletePackageMutation.mutate(String(mp.id));
+                                }
+                              }}
+                              disabled={deletePackageMutation.isPending}
+                              className="text-slate-400 hover:text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );

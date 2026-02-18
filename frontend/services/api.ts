@@ -67,6 +67,7 @@ export const paymentsApi = {
     api.post<MemberPackage>("/payments", data),
   update: (id: string, data: Partial<MemberPackage>) =>
     api.put<MemberPackage>(`/payments/${id}`, data),
+  delete: (id: string) => api.delete(`/payments/${id}`),
 };
 
 export const packagesApi = {
