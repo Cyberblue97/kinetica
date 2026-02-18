@@ -148,6 +148,8 @@ kinetica/
         members/
           page.tsx          # 회원 목록 (검색, 추가 다이얼로그, 잔여 세션 표시)
           [id]/page.tsx     # 회원 상세 (탭: 기본정보, 패키지/결제, 수업이력)
+                           # 헤더: 회원 비활성화 버튼
+                           # 패키지/결제 탭: 패키지 삭제 버튼
         sessions/page.tsx   # 수업 스케줄 (날짜 필터, 상태 변경, 예약 다이얼로그)
         payments/page.tsx   # 결제 기록 (통계, 상태 필터, 결제 테이블)
         packages/page.tsx   # 패키지 관리 (CRUD, 오너만)
@@ -215,8 +217,8 @@ PUT/DELETE      /sessions/{id}       — 상태 변경/삭제
                                        완료된 세션 삭제 시 sessions_remaining 복구
 
 # 결제
-GET/POST        /payments            — 결제 목록/패키지 구매
-GET/PUT         /payments/{id}       — 결제 상세/상태 수정
+GET/POST           /payments         — 결제 목록/패키지 구매
+GET/PUT/DELETE     /payments/{id}    — 결제 상세/상태 수정/삭제 (DELETE: 오너 전용)
 
 # 패키지 (오너 전용)
 GET/POST/PUT/DELETE /packages        — 패키지 상품 CRUD
@@ -247,8 +249,27 @@ GET /health                          — 헬스 체크
 
 ---
 
-## 알려진 이슈 (모두 해결됨)
+## async SQLAlchemy 관계 로딩 규칙
 
+> **`db.refresh(obj, ["관계명"])`은 relationship 로딩 불가** — scalar 필드만 갱신됨.
+> async context에서 lazy load 시도 시 `MissingGreenlet` 오류 발생.
+
+**올바른 패턴:**
+```python
+# ❌ 잘못된 방식
+await db.refresh(obj, ["member", "package"])
+
+# ✅ JOIN 없이 relationship 로딩
+await db.execute(
+    select(Model).where(Model.id == obj.id)
+    .options(selectinload(Model.관계필드))
+)
+
+# ✅ JOIN 결과로 relationship 로딩 (JOIN + selectinload 혼용 금지)
+select(Model).join(Related).options(contains_eager(Model.관계필드))
+```
+
+JOIN + selectinload 동시 사용 시 충돌 → `contains_eager` 사용.
 ---
 
 ## 향후 확장 계획
