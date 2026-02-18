@@ -67,8 +67,12 @@ async def create_member(
     )
     db.add(member)
     await db.commit()
-    await db.refresh(member, ["member_packages"])
-    return member
+    result = await db.execute(
+        select(Member)
+        .where(Member.id == member.id)
+        .options(selectinload(Member.member_packages))
+    )
+    return result.scalar_one()
 
 
 @router.get("/{member_id}", response_model=MemberResponse)
@@ -132,8 +136,12 @@ async def update_member(
         setattr(member, field, value)
 
     await db.commit()
-    await db.refresh(member, ["member_packages"])
-    return member
+    result = await db.execute(
+        select(Member)
+        .where(Member.id == member_id)
+        .options(selectinload(Member.member_packages))
+    )
+    return result.scalar_one()
 
 
 @router.delete("/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -215,7 +223,10 @@ async def get_member_packages(
     result = await db.execute(
         select(MemberPackage)
         .where(MemberPackage.member_id == member_id)
-        .options(selectinload(MemberPackage.package))
+        .options(
+            selectinload(MemberPackage.member),
+            selectinload(MemberPackage.package),
+        )
         .order_by(MemberPackage.created_at.desc())
     )
     return result.scalars().all()
