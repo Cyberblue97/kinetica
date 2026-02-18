@@ -2,6 +2,7 @@
 
 import { useState, use } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import {
   membersApi,
   paymentsApi,
@@ -39,7 +40,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, UserX } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { Member, Session, MemberPackage, Package, User } from "@/types";
@@ -71,6 +72,7 @@ export default function MemberDetailPage({
 }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
+  const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [packageDialogOpen, setPackageDialogOpen] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Member>>({});
@@ -123,6 +125,16 @@ export default function MemberDetailPage({
       queryClient.invalidateQueries({ queryKey: ["member-packages", id] });
       toast.success("패키지가 추가되었습니다");
       setPackageDialogOpen(false);
+    },
+    onError: () => toast.error("오류가 발생했습니다"),
+  });
+
+  const deactivateMemberMutation = useMutation({
+    mutationFn: () => membersApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["members"] });
+      toast.success("회원이 비활성화되었습니다");
+      router.push("/members");
     },
     onError: () => toast.error("오류가 발생했습니다"),
   });
@@ -181,24 +193,42 @@ export default function MemberDetailPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/members">
-          <Button variant="ghost" size="sm" className="gap-2 text-slate-600">
-            <ArrowLeft className="w-4 h-4" />
-            목록으로
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/members">
+            <Button variant="ghost" size="sm" className="gap-2 text-slate-600">
+              <ArrowLeft className="w-4 h-4" />
+              목록으로
+            </Button>
+          </Link>
+          <h2 className="text-xl font-bold text-slate-900">{member.name}</h2>
+          <Badge
+            variant="secondary"
+            className={
+              member.is_active
+                ? "bg-green-100 text-green-700"
+                : "bg-slate-100 text-slate-500"
+            }
+          >
+            {member.is_active ? "활성" : "비활성"}
+          </Badge>
+        </div>
+        {member.is_active && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (confirm(`${member.name} 회원을 비활성화하시겠습니까?`)) {
+                deactivateMemberMutation.mutate();
+              }
+            }}
+            disabled={deactivateMemberMutation.isPending}
+            className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
+          >
+            <UserX className="w-4 h-4" />
+            회원 비활성화
           </Button>
-        </Link>
-        <h2 className="text-xl font-bold text-slate-900">{member.name}</h2>
-        <Badge
-          variant="secondary"
-          className={
-            member.is_active
-              ? "bg-green-100 text-green-700"
-              : "bg-slate-100 text-slate-500"
-          }
-        >
-          {member.is_active ? "활성" : "비활성"}
-        </Badge>
+        )}
       </div>
 
       <Tabs defaultValue="info">
