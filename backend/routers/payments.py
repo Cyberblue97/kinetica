@@ -4,7 +4,7 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import contains_eager, selectinload
 
 from models.database import Member, MemberPackage, Package, User, UserRole, get_db
 from models.schemas import (
@@ -27,7 +27,8 @@ async def list_payments(
         .join(Member, MemberPackage.member_id == Member.id)
         .where(Member.gym_id == current_user.gym_id)
         .options(
-            selectinload(MemberPackage.member), selectinload(MemberPackage.package)
+            contains_eager(MemberPackage.member),
+            selectinload(MemberPackage.package),
         )
         .order_by(MemberPackage.created_at.desc())
     )
@@ -110,7 +111,8 @@ async def get_payment(
         .join(Member, MemberPackage.member_id == Member.id)
         .where(MemberPackage.id == payment_id, Member.gym_id == current_user.gym_id)
         .options(
-            selectinload(MemberPackage.member), selectinload(MemberPackage.package)
+            contains_eager(MemberPackage.member),
+            selectinload(MemberPackage.package),
         )
     )
     mp = result.scalar_one_or_none()
@@ -139,7 +141,8 @@ async def update_payment(
         .join(Member, MemberPackage.member_id == Member.id)
         .where(MemberPackage.id == payment_id, Member.gym_id == current_user.gym_id)
         .options(
-            selectinload(MemberPackage.member), selectinload(MemberPackage.package)
+            contains_eager(MemberPackage.member),
+            selectinload(MemberPackage.package),
         )
     )
     mp = result.scalar_one_or_none()
@@ -152,5 +155,13 @@ async def update_payment(
         setattr(mp, field, value)
 
     await db.commit()
-    await db.refresh(mp, ["member", "package"])
-    return mp
+    result = await db.execute(
+        select(MemberPackage)
+        .join(Member, MemberPackage.member_id == Member.id)
+        .where(MemberPackage.id == payment_id, Member.gym_id == current_user.gym_id)
+        .options(
+            contains_eager(MemberPackage.member),
+            selectinload(MemberPackage.package),
+        )
+    )
+    return result.scalar_one()
