@@ -139,11 +139,16 @@ export default function SessionsPage() {
   // ── Handlers ───────────────────────────────────────────────────
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // datetime-local input은 로컬 시간 "YYYY-MM-DDTHH:mm" 형식
+    // toISOString()은 UTC 변환(-9h)이 일어나므로 사용 금지 → 그대로 전송
+    const localDatetime = form.scheduled_at.length === 16
+      ? form.scheduled_at + ":00"
+      : form.scheduled_at;
     createMutation.mutate({
       member_id: form.member_id,
       member_package_id: form.member_package_id,
       trainer_id: form.trainer_id,
-      scheduled_at: new Date(form.scheduled_at).toISOString(),
+      scheduled_at: localDatetime,
       notes: form.notes || undefined,
     });
   };
