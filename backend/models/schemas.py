@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from typing import List, Optional
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from models.database import (
     GymType,
@@ -237,6 +237,11 @@ class SessionCreate(BaseModel):
     scheduled_at: datetime
     duration_minutes: int = Field(default=60, gt=0)
     notes: Optional[str] = None
+
+    @field_validator("scheduled_at")
+    @classmethod
+    def strip_timezone(cls, v: datetime) -> datetime:
+        return v.replace(tzinfo=None)
 
 
 class SessionUpdate(BaseModel):
