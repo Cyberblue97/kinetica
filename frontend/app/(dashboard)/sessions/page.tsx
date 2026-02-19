@@ -30,13 +30,33 @@ import type { Session, MemberPackage, User } from "@/types";
 // ── Timeline constants ──────────────────────────────────────────
 const HOUR_START = 6;   // 06:00
 const HOUR_END = 22;    // 22:00
-const HOUR_HEIGHT = 64; // px per hour
+const HOUR_HEIGHT = 60; // px per hour
 
-const statusConfig: Record<string, { label: string; border: string; bg: string; text: string }> = {
-  scheduled: { label: "예정",  border: "border-blue-400",  bg: "bg-blue-50",  text: "text-blue-700" },
-  completed: { label: "완료",  border: "border-green-400", bg: "bg-green-50", text: "text-green-700" },
-  no_show:   { label: "노쇼",  border: "border-red-400",   bg: "bg-red-50",   text: "text-red-700" },
-  cancelled: { label: "취소",  border: "border-slate-300", bg: "bg-slate-50", text: "text-slate-500" },
+const statusConfig: Record<string, {
+  label: string;
+  cardBg: string; cardBorder: string; cardText: string;
+  badgeBg: string; badgeText: string;
+}> = {
+  scheduled: {
+    label: "예정",
+    cardBg: "bg-blue-50",   cardBorder: "border-blue-300",  cardText: "text-blue-900",
+    badgeBg: "bg-blue-100", badgeText: "text-blue-700",
+  },
+  completed: {
+    label: "완료",
+    cardBg: "bg-emerald-50",   cardBorder: "border-emerald-300",  cardText: "text-emerald-900",
+    badgeBg: "bg-emerald-100", badgeText: "text-emerald-700",
+  },
+  no_show: {
+    label: "노쇼",
+    cardBg: "bg-red-50",   cardBorder: "border-red-300",  cardText: "text-red-900",
+    badgeBg: "bg-red-100", badgeText: "text-red-700",
+  },
+  cancelled: {
+    label: "취소",
+    cardBg: "bg-slate-50",   cardBorder: "border-slate-200",  cardText: "text-slate-400",
+    badgeBg: "bg-slate-100", badgeText: "text-slate-400",
+  },
 };
 
 type SessionForm = {
@@ -203,9 +223,18 @@ export default function SessionsPage() {
           </div>
         ) : (
           <div
-            className="relative ml-14"
-            style={{ height: `${totalHeight}px` }}
+            className="relative"
+            style={{ height: `${totalHeight}px`, marginLeft: "56px" }}
           >
+            {/* ── Hour rows (alternating bg + border) ── */}
+            {Array.from({ length: HOUR_END - HOUR_START }, (_, i) => (
+              <div
+                key={i}
+                className={`absolute left-0 right-0 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/50"}`}
+                style={{ top: `${i * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT}px` }}
+              />
+            ))}
+
             {/* ── Hour markers ── */}
             {Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => (
               <div
@@ -213,17 +242,27 @@ export default function SessionsPage() {
                 className="absolute left-0 right-0 flex items-start pointer-events-none"
                 style={{ top: `${i * HOUR_HEIGHT}px` }}
               >
-                <span className="absolute -left-14 w-12 text-right text-xs text-slate-400 -mt-2 pr-2 select-none">
+                <span className="absolute text-right text-[11px] text-slate-400 -mt-2 pr-3 select-none"
+                  style={{ left: "-56px", width: "52px" }}>
                   {String(HOUR_START + i).padStart(2, "0")}:00
                 </span>
-                <div className="w-full border-t border-slate-100" />
+                <div className="w-full border-t border-slate-200" />
               </div>
+            ))}
+
+            {/* ── 30-min half-hour lines ── */}
+            {Array.from({ length: HOUR_END - HOUR_START }, (_, i) => (
+              <div
+                key={`half-${i}`}
+                className="absolute left-0 right-0 border-t border-slate-100 border-dashed pointer-events-none"
+                style={{ top: `${i * HOUR_HEIGHT + HOUR_HEIGHT / 2}px` }}
+              />
             ))}
 
             {/* ── Empty state ── */}
             {!sessions?.length && (
               <div
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                className="absolute left-0 right-0 flex items-center justify-center pointer-events-none"
                 style={{ top: `${(10 - HOUR_START) * HOUR_HEIGHT}px`, height: `${HOUR_HEIGHT * 2}px` }}
               >
                 <p className="text-sm text-slate-400">빈 시간대를 클릭해 수업을 예약하세요</p>
@@ -235,61 +274,59 @@ export default function SessionsPage() {
               const top = sessionTopPx(session);
               const height = sessionHeightPx(session);
               const sc = statusConfig[session.status] ?? statusConfig.scheduled;
-              // Find package name from memberPackages
               const mp = memberPackages?.find(
                 (p) => String(p.id) === String(session.member_package_id)
               );
               const pkgName = mp?.package?.name;
+              const timeLabel = format(new Date(session.scheduled_at), "HH:mm");
 
               return (
                 <div
                   key={session.id}
                   data-session-card
-                  className={`absolute left-2 right-3 rounded-lg border-l-4 px-3 py-1.5 shadow-sm overflow-hidden ${sc.border} ${sc.bg}`}
+                  className={`absolute left-2 right-3 rounded-lg border shadow-sm overflow-hidden
+                    ${sc.cardBg} ${sc.cardBorder} cursor-default`}
                   style={{ top: `${top}px`, height: `${height}px` }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="flex items-start justify-between gap-2 h-full">
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-semibold truncate ${sc.text}`}>
-                        {session.member?.name || "—"}
-                      </p>
-                      {height >= 52 && (
-                        <p className="text-xs text-slate-500 truncate">
-                          {session.trainer?.name}
-                          {pkgName ? ` · ${pkgName}` : ""}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${sc.bg} ${sc.text} border ${sc.border}`}
-                      >
+                  <div className="flex flex-col h-full px-2.5 py-1.5 gap-0.5">
+                    {/* Top row: time + status badge */}
+                    <div className="flex items-center justify-between gap-1">
+                      <span className={`text-[10px] font-medium ${sc.cardText} opacity-70`}>
+                        {timeLabel}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${sc.badgeBg} ${sc.badgeText}`}>
                         {sc.label}
                       </span>
-                      {session.status === "scheduled" && height >= 52 && (
-                        <div className="flex gap-1">
-                          <button
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 hover:bg-green-200 font-medium"
-                            onClick={() => statusMutation.mutate({ id: session.id, status: "completed" })}
-                          >
-                            완료
-                          </button>
-                          <button
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-red-100 text-red-700 hover:bg-red-200 font-medium"
-                            onClick={() => statusMutation.mutate({ id: session.id, status: "no_show" })}
-                          >
-                            노쇼
-                          </button>
-                          <button
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium"
-                            onClick={() => statusMutation.mutate({ id: session.id, status: "cancelled" })}
-                          >
-                            취소
-                          </button>
-                        </div>
-                      )}
                     </div>
+                    {/* Member name */}
+                    <p className={`text-xs font-bold truncate leading-tight ${sc.cardText}`}>
+                      {session.member?.name || "—"}
+                    </p>
+                    {/* Trainer · Package */}
+                    {height >= 54 && (
+                      <p className={`text-[11px] truncate leading-tight opacity-60 ${sc.cardText}`}>
+                        {session.trainer?.name}
+                        {pkgName ? ` · ${pkgName}` : ""}
+                      </p>
+                    )}
+                    {/* Action buttons (scheduled only, enough height) */}
+                    {session.status === "scheduled" && height >= 80 && (
+                      <div className="flex gap-1 mt-auto pt-1">
+                        <button
+                          className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-medium border border-emerald-200"
+                          onClick={() => statusMutation.mutate({ id: session.id, status: "completed" })}
+                        >완료</button>
+                        <button
+                          className="text-[10px] px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 hover:bg-red-200 font-medium border border-red-200"
+                          onClick={() => statusMutation.mutate({ id: session.id, status: "no_show" })}
+                        >노쇼</button>
+                        <button
+                          className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 hover:bg-slate-200 font-medium border border-slate-200"
+                          onClick={() => statusMutation.mutate({ id: session.id, status: "cancelled" })}
+                        >취소</button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
