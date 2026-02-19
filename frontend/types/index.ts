@@ -73,11 +73,13 @@ export interface MemberPackage {
 
 export interface Session {
   id: string;
+  member_id: string;
   member_package_id: string;
   member?: Member;
   trainer_id: string;
   trainer?: User;
   scheduled_at: string;
+  duration_minutes: number;
   status: SessionStatus;
   notes?: string;
 }
