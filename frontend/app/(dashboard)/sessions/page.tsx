@@ -297,7 +297,7 @@ export default function SessionsPage() {
                 <div
                   key={session.id}
                   data-session-card
-                  className={`absolute left-2 right-3 rounded-lg border shadow-sm overflow-hidden
+                  className={`absolute left-2 right-3 rounded-lg border shadow-sm
                     ${sc.cardBg} ${sc.cardBorder} cursor-default`}
                   style={{ top: `${top}px`, height: `${height}px` }}
                   onClick={(e) => e.stopPropagation()}
@@ -319,6 +319,7 @@ export default function SessionsPage() {
                               className={`p-0.5 rounded hover:bg-black/10 ${sc.cardText}`}
                               onClick={(e) => {
                                 e.stopPropagation();
+                                e.nativeEvent.stopImmediatePropagation(); // document 핸들러 차단
                                 setOpenMenuId(openMenuId === session.id ? null : session.id);
                               }}
                             >
