@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { sessionsApi, paymentsApi, trainersApi } from "@/services/api";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { CalendarPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import { format, addDays, subDays } from "date-fns";
 import { ko } from "date-fns/locale";
 import type { Session, MemberPackage, User } from "@/types";
@@ -84,6 +84,14 @@ export default function SessionsPage() {
 
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // 카드 외부 클릭 시 메뉴 닫기
+  useEffect(() => {
+    const handler = () => setOpenMenuId(null);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, []);
   const [form, setForm] = useState<SessionForm>({
     member_id: "",
     member_package_id: "",
@@ -295,14 +303,49 @@ export default function SessionsPage() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex flex-col h-full px-2.5 py-1.5 gap-0.5">
-                    {/* Top row: time + status badge */}
+                    {/* Top row: time + status badge + menu */}
                     <div className="flex items-center justify-between gap-1">
                       <span className={`text-[10px] font-medium ${sc.cardText} opacity-70`}>
                         {timeLabel}
                       </span>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${sc.badgeBg} ${sc.badgeText}`}>
-                        {sc.label}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${sc.badgeBg} ${sc.badgeText}`}>
+                          {sc.label}
+                        </span>
+                        {/* ⋮ 메뉴 — 예정 상태일 때만 표시 */}
+                        {session.status === "scheduled" && (
+                          <div className="relative">
+                            <button
+                              className={`p-0.5 rounded hover:bg-black/10 ${sc.cardText}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === session.id ? null : session.id);
+                              }}
+                            >
+                              <MoreHorizontal className="w-3 h-3" />
+                            </button>
+                            {openMenuId === session.id && (
+                              <div
+                                className="absolute right-0 top-full mt-1 z-20 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[80px]"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  className="w-full text-left text-xs px-3 py-1.5 hover:bg-emerald-50 text-emerald-700 font-medium"
+                                  onClick={() => { statusMutation.mutate({ id: session.id, status: "completed" }); setOpenMenuId(null); }}
+                                >완료</button>
+                                <button
+                                  className="w-full text-left text-xs px-3 py-1.5 hover:bg-red-50 text-red-600 font-medium"
+                                  onClick={() => { statusMutation.mutate({ id: session.id, status: "no_show" }); setOpenMenuId(null); }}
+                                >노쇼</button>
+                                <button
+                                  className="w-full text-left text-xs px-3 py-1.5 hover:bg-slate-50 text-slate-500 font-medium"
+                                  onClick={() => { statusMutation.mutate({ id: session.id, status: "cancelled" }); setOpenMenuId(null); }}
+                                >취소</button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     {/* Member name */}
                     <p className={`text-xs font-bold truncate leading-tight ${sc.cardText}`}>
@@ -314,23 +357,6 @@ export default function SessionsPage() {
                         {session.trainer?.name}
                         {pkgName ? ` · ${pkgName}` : ""}
                       </p>
-                    )}
-                    {/* Action buttons (scheduled only, enough height) */}
-                    {session.status === "scheduled" && height >= 80 && (
-                      <div className="flex gap-1 mt-auto pt-1">
-                        <button
-                          className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-medium border border-emerald-200"
-                          onClick={() => statusMutation.mutate({ id: session.id, status: "completed" })}
-                        >완료</button>
-                        <button
-                          className="text-[10px] px-1.5 py-0.5 rounded-md bg-red-100 text-red-600 hover:bg-red-200 font-medium border border-red-200"
-                          onClick={() => statusMutation.mutate({ id: session.id, status: "no_show" })}
-                        >노쇼</button>
-                        <button
-                          className="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 hover:bg-slate-200 font-medium border border-slate-200"
-                          onClick={() => statusMutation.mutate({ id: session.id, status: "cancelled" })}
-                        >취소</button>
-                      </div>
                     )}
                   </div>
                 </div>
