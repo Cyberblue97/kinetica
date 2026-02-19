@@ -54,6 +54,7 @@ export const sessionsApi = {
     api.put<Session>(`/sessions/${id}`, data),
   updateStatus: (id: string, status: string) =>
     api.put(`/sessions/${id}`, { status }),
+  delete: (id: string) => api.delete(`/sessions/${id}`),
 };
 
 export const paymentsApi = {

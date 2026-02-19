@@ -146,6 +146,17 @@ export default function SessionsPage() {
     onError: () => toast.error("오류가 발생했습니다"),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => sessionsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-today-sessions"] });
+      toast.success("수업이 삭제되었습니다");
+    },
+    onError: () => toast.error("오류가 발생했습니다"),
+  });
+
   // ── Handlers ───────────────────────────────────────────────────
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -314,24 +325,24 @@ export default function SessionsPage() {
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${sc.badgeBg} ${sc.badgeText}`}>
                           {sc.label}
                         </span>
-                        {/* ⋮ 메뉴 — 예정 상태일 때만 표시 */}
-                        {session.status === "scheduled" && (
-                          <div className="relative">
-                            <button
-                              className={`p-0.5 rounded hover:bg-black/10 ${sc.cardText}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                e.nativeEvent.stopImmediatePropagation(); // document 핸들러 차단
-                                setOpenMenuId(openMenuId === session.id ? null : session.id);
-                              }}
+                        {/* ⋮ 메뉴 — 모든 상태에서 표시 */}
+                        <div className="relative">
+                          <button
+                            className={`p-0.5 rounded hover:bg-black/10 ${sc.cardText}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.nativeEvent.stopImmediatePropagation();
+                              setOpenMenuId(openMenuId === session.id ? null : session.id);
+                            }}
+                          >
+                            <MoreHorizontal className="w-3 h-3" />
+                          </button>
+                          {openMenuId === session.id && (
+                            <div
+                              className="absolute right-0 top-full mt-1 z-20 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[80px]"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <MoreHorizontal className="w-3 h-3" />
-                            </button>
-                            {openMenuId === session.id && (
-                              <div
-                                className="absolute right-0 top-full mt-1 z-20 bg-white border border-slate-200 rounded-lg shadow-lg py-1 min-w-[80px]"
-                                onClick={(e) => e.stopPropagation()}
-                              >
+                              {session.status === "scheduled" && (<>
                                 <button
                                   className="w-full text-left text-xs px-3 py-1.5 hover:bg-emerald-50 text-emerald-700 font-medium"
                                   onClick={() => { statusMutation.mutate({ id: session.id, status: "completed" }); setOpenMenuId(null); }}
@@ -344,10 +355,20 @@ export default function SessionsPage() {
                                   className="w-full text-left text-xs px-3 py-1.5 hover:bg-slate-50 text-slate-500 font-medium"
                                   onClick={() => { statusMutation.mutate({ id: session.id, status: "cancelled" }); setOpenMenuId(null); }}
                                 >취소</button>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                                <div className="border-t border-slate-100 my-1" />
+                              </>)}
+                              <button
+                                className="w-full text-left text-xs px-3 py-1.5 hover:bg-red-50 text-red-500 font-medium"
+                                onClick={() => {
+                                  if (window.confirm("수업을 삭제하시겠습니까?")) {
+                                    deleteMutation.mutate(session.id);
+                                    setOpenMenuId(null);
+                                  }
+                                }}
+                              >삭제</button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                     {/* Member name */}
