@@ -139,6 +139,8 @@ export default function SessionsPage() {
       sessionsApi.updateStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-today-sessions"] });
       toast.success("상태가 변경되었습니다");
     },
     onError: () => toast.error("오류가 발생했습니다"),
